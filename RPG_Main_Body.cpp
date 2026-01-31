@@ -232,6 +232,13 @@ void test_inventory() {
 
     std::cout << "\n=== Test Complete ===\n";
 }
+void test_items(Player& player, std::vector<std::unique_ptr<Item>>& items) {
+	
+	for (size_t i = 1; i < items.size(); ++i) {
+		if (items[i])
+			player.inventory.addItem(std::move(items[i]));
+	}
+}
 
 // Functions
 void runGame() {
@@ -243,9 +250,8 @@ void runGame() {
 	auto items = itemfactory.loadItems("ItemList.txt");
 	auto npcs = npcfactory.loadNPCs("NPCs.txt");
 	
-	for (int i = 0; i < 5; ++i) {
-		player.inventory.addItem(std::move(items[i]));
-	}
+	player.inventory.addItem(std::move(items[0]));
+	test_items(player, items);
 	
 	// Finish game loop here:
 	int screenWidth = 800;
@@ -274,10 +280,10 @@ void runGame() {
 		
 	    const Uint8* keystate = SDL_GetKeyboardState(NULL);
 		if (state == GameState::Explore) { // If Exploring "Not in inventory or fight"
-			if (keystate[SDL_SCANCODE_W]) player.move(0, -4);
-			if (keystate[SDL_SCANCODE_A]) player.move(-4, 0);
-			if (keystate[SDL_SCANCODE_S]) player.move(0, 4);
-			if (keystate[SDL_SCANCODE_D]) player.move(4, 0);
+			if (keystate[SDL_SCANCODE_W] || keystate[SDL_SCANCODE_UP]) player.move(0, -4);
+			if (keystate[SDL_SCANCODE_A] || keystate[SDL_SCANCODE_LEFT]) player.move(-4, 0);
+			if (keystate[SDL_SCANCODE_S] || keystate[SDL_SCANCODE_DOWN]) player.move(0, 4);
+			if (keystate[SDL_SCANCODE_D] || keystate[SDL_SCANCODE_RIGHT]) player.move(4, 0);
 		}
 		
 		if (keystate[SDL_SCANCODE_I]) { state = GameState::Inventory; }
@@ -285,7 +291,63 @@ void runGame() {
 		
 	    renderer.clear();
 	    
-		if (state == GameState::Inventory) { renderer.drawInventory(); }
+		if (state == GameState::Inventory) {
+			renderer.drawInventory();
+			
+			int mouseX, mouseY;
+			SDL_GetMouseState(&mouseX, &mouseY);
+			
+			float uiScale = 0.5f;
+			int baseSlotSize = 92;
+			int slotSize = static_cast<int>(baseSlotSize * uiScale);
+			
+			int cols = 10;
+			int rows = 3;
+			
+			int totalWidth = (cols + 1) * slotSize;
+			int totalHeight = (rows + 1) * slotSize;
+			
+			int startX = (renderer.windowWidth - totalWidth) / 2;
+			int startY = (renderer.windowHeight - totalHeight) / 2;
+			
+			for (int r = 0; r < rows; r++) {
+				for (int c = 0; c < cols; c++) {
+					int slotIndex = r * cols + c;
+					Item* item = player.inventory.getItem(slotIndex);
+					if (!item) continue;
+					
+					int x = startX + (c + 1) * slotSize;
+					int y = startY + (r + 1) * slotSize;
+					
+					renderer.drawItem(x, y, item->getItemID(), slotSize);
+					
+					// HOVER DETECTION
+					SDL_Rect slotRect{ x, y, slotSize, slotSize };
+					SDL_Point mousePoint{ mouseX, mouseY };
+					if (SDL_PointInRect(&mousePoint, &slotRect)) {
+						renderer.drawTooltip(item->getName(), item->getDescription(), mouseX + 16, mouseY + 16);
+					}
+				}
+			}
+			
+			const Item* weapon = player.inventory.getEquippedWeapon();
+			if (weapon) {
+				int x = startX + slotSize;
+				int y = startY + rows * slotSize;
+				renderer.drawItem(x, y, weapon->getItemID(), slotSize);
+			}
+			
+			for (int i = 0; i < 4; i ++) {
+				const Item* armor = player.inventory.getEquippedArmor(static_cast<ArmorSlotType>(i));
+				if (!armor) continue;
+				
+				int x = startX;
+				int y = startY + i * slotSize;
+				
+				renderer.drawItem(x, y, armor->getItemID(), slotSize);
+			}
+		}
+		
 		if (state == GameState::Explore) { renderer.drawPlayer(player.x, player.y); }
 		
 	    renderer.present();

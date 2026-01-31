@@ -55,6 +55,12 @@ bool Renderer::init(const char* title, int width, int height) {
 		return false;
 	}
 	
+	font = TTF_OpenFont("Assets/font.ttf", 20);
+	if (!font) {
+		std::cerr << "Failed to load font: " << TTF_GetError() << "\n";
+		return false;
+	}
+	
     return true;
 }
 SDL_Texture* Renderer::loadTexture(const std::string& path) {
@@ -166,6 +172,41 @@ void Renderer::drawInventory() {
 void Renderer::drawSlot(int x, int y, int slotSize) {
 	SDL_Rect dst{ x, y, slotSize, slotSize };
 	SDL_RenderCopy(renderer, slotTexture, nullptr, &dst);
+}
+void Renderer::drawTooltip(const std::string& name, const std::string& desc, int x, int y) {
+	if (!font) return;
+	
+	SDL_Color white = {255, 255, 255, 255};
+	SDL_Color black = {0, 0, 0, 200};
+	
+	SDL_Surface* nameSurf = TTF_RenderText_Blended(font, name.c_str(), white);
+	SDL_Surface* descSurf = TTF_RenderText_Blended_Wrapped(font, desc.c_str(), white, 100);
+	
+	SDL_Texture* nameTex = SDL_CreateTextureFromSurface(renderer, nameSurf);
+	SDL_Texture* descTex = SDL_CreateTextureFromSurface(renderer, descSurf);
+	
+	int w1, h1, w2, h2;
+	SDL_QueryTexture(nameTex, nullptr, nullptr, &w1, &h1);
+	SDL_QueryTexture(descTex, nullptr, nullptr, &w2, &h2);
+	
+	int padding = 8;
+	int boxW = std::max(w1, w2) + padding * 2;
+	int boxH = h1 + h2 + padding * 3;
+	
+	SDL_Rect bg{ x, y, boxW, boxH };
+	SDL_SetRenderDrawColor(renderer, 50, 50, 50, 80);
+	SDL_RenderFillRect(renderer, &bg);
+	
+	SDL_Rect nameDst{ x + padding, y + padding, w1, h1 };
+	SDL_Rect descDst{ x + padding, y + padding + h1 + 4, w2, h2 };
+	
+	SDL_RenderCopy(renderer, nameTex, nullptr, &nameDst);
+	SDL_RenderCopy(renderer, descTex, nullptr, &descDst);
+	
+	SDL_FreeSurface(nameSurf);
+	SDL_FreeSurface(descSurf);
+	SDL_DestroyTexture(nameTex);
+	SDL_DestroyTexture(descTex);
 }
 
 // When updating, use the command line below:
