@@ -41,3 +41,9 @@
 	Healing: 25
 	Consumable
 ----------
+8 - The Mask
+	Description: Would you drink the cool-aid? (Placeholder)
+	Defense: 0
+	Health: 0
+	Head
+	Equippable
