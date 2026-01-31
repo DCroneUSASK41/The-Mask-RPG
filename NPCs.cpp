@@ -24,12 +24,14 @@ void EnemyNPC::setHealth(int h) { health = h; }
 void EnemyNPC::setAttack(int a) { attack = a; }
 void EnemyNPC::setDefense(int d) { defense = d; }
 void EnemyNPC::setXP(int x) { xp = x; }
+void EnemyNPC::setGold(int g) { gold = g; }
 int EnemyNPC::getID() const { return NPCID; }
 const std::string& EnemyNPC::getName() const { return name; }
 int EnemyNPC::getHealth() const { return health; }
 int EnemyNPC::getAttack() const { return attack; }
 int EnemyNPC::getDefense() const { return defense; }
 int EnemyNPC::getXP() const { return xp; }
+int EnemyNPC::getGold() const { return gold; }
 void EnemyNPC::interact() {
     //Placeholder
 }
@@ -78,6 +80,7 @@ std::unique_ptr<NPC> NPCFactory::parseNPCBlock(const std::vector<std::string>& l
     // Enemy Specific
     int damage = 0;
     int defense = 0;
+	int gold = 0;
     
     // Friendly Specific
     FriendlyJob job = FriendlyJob::Shop;

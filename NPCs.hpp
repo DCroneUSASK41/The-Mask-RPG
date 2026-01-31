@@ -64,6 +64,7 @@ class EnemyNPC : public NPC {
 		void setAttack(int a);
 		void setDefense(int d);
 		void setXP(int x);
+		void setGold(int g);
 		
 		int getID() const override;
 		const std::string& getName() const override;
@@ -71,6 +72,7 @@ class EnemyNPC : public NPC {
 		int getAttack() const;
 		int getDefense() const;
 		int getXP() const;
+		int getGold() const;
 		
 		void setType(NPCType t) override { type = t; }
 		
@@ -83,6 +85,7 @@ class EnemyNPC : public NPC {
 		int attack;
 		int defense;
 		int xp;
+		int gold;
 };
 class NPCFactory {
 	public:

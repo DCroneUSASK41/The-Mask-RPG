@@ -14,7 +14,7 @@
 # include "NPCs.hpp"
 # include "render2d.hpp"
 
-// Initial Class and Structure declarations
+// Initial Global Declaration
 enum class GameState;
 enum class CombatState;
 struct InventorySlotInfo;
@@ -249,12 +249,13 @@ void runGame() {
 	
 	auto items = itemfactory.loadItems("ItemList.txt");
 	auto npcs = npcfactory.loadNPCs("NPCs.txt");
+	bool eWasDown = false;
 	
 	player.inventory.addItem(std::move(items[0]));
 	test_items(player, items);
 	
 	// Finish game loop here:
-	int screenWidth = 800;
+	int screenWidth = 800; // Base values
 	int screenHeight = 600;
 	
 	SDL_DisplayMode dm;
@@ -316,39 +317,62 @@ void runGame() {
 					Item* item = player.inventory.getItem(slotIndex);
 					if (!item) continue;
 					
-					int x = startX + (c + 1) * slotSize;
-					int y = startY + (r + 1) * slotSize;
+					int x = startX + (c) * slotSize;
+					int y = startY + (r) * slotSize;
 					
 					renderer.drawItem(x, y, item->getItemID(), slotSize);
 					
 					// HOVER DETECTION
 					SDL_Rect slotRect{ x, y, slotSize, slotSize };
 					SDL_Point mousePoint{ mouseX, mouseY };
+					
+					bool eDown = keystate[SDL_SCANCODE_E];
+					
 					if (SDL_PointInRect(&mousePoint, &slotRect)) {
 						renderer.drawTooltip(item->getName(), item->getDescription(), mouseX + 16, mouseY + 16);
+
+						if (eDown && !eWasDown) { player.inventory.equipItem(slotIndex); }
 					}
+					eWasDown = eDown;
 				}
 			}
 			
 			const Item* weapon = player.inventory.getEquippedWeapon();
 			if (weapon) {
-				int x = startX + slotSize;
+				int x = startX;
 				int y = startY + rows * slotSize;
 				renderer.drawItem(x, y, weapon->getItemID(), slotSize);
+				
+				// HOVER DETECTION
+				SDL_Rect slotRect{ x, y, slotSize, slotSize };
+				SDL_Point mousePoint{ mouseX, mouseY };
+				if (SDL_PointInRect(&mousePoint, &slotRect)) {
+					renderer.drawTooltip(weapon->getName(), weapon->getDescription(), mouseX + 16, mouseY + 16);
+				}
 			}
 			
 			for (int i = 0; i < 4; i ++) {
 				const Item* armor = player.inventory.getEquippedArmor(static_cast<ArmorSlotType>(i));
 				if (!armor) continue;
 				
-				int x = startX;
+				int x = startX - slotSize;
 				int y = startY + i * slotSize;
 				
 				renderer.drawItem(x, y, armor->getItemID(), slotSize);
+				
+				// HOVER DETECTION
+				SDL_Rect slotRect{ x, y, slotSize, slotSize };
+				SDL_Point mousePoint{ mouseX, mouseY };
+				if (SDL_PointInRect(&mousePoint, &slotRect)) {
+					renderer.drawTooltip(armor->getName(), armor->getDescription(), mouseX + 16, mouseY + 16);
+				}
 			}
 		}
 		
-		if (state == GameState::Explore) { renderer.drawPlayer(player.x, player.y); }
+		if (state == GameState::Explore) { 
+		renderer.drawPlayer(player.x, player.y);
+		renderer.drawNPC(200, 200, 4);
+		}
 		
 	    renderer.present();
 		

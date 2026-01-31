@@ -99,7 +99,7 @@ void Renderer::drawNPC(int x, int y, int id) {
     SDL_Texture* tex = getNPCTexture(id);
     if (!tex) return;
 
-    SDL_Rect dst{ x, y, 32, 32 };
+    SDL_Rect dst{ x, y, 100, 100 };
     SDL_RenderCopy(renderer, tex, nullptr, &dst);
 }
 void Renderer::drawItem(int x, int y, int id, int slotSize) {
