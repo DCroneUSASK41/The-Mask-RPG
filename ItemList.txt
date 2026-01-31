@@ -1,0 +1,43 @@
+1 - Oak Sword
+	Description: Made from solid oak
+	Damage: 10
+	Equippable
+-----------
+2 - Leather Hat
+	Description: A fancy leather hat :)
+	Defense: 5
+	Health: 5
+	Head
+	Equippable
+-----------
+3 - Leather Coat
+	Description: Protects from the cold
+	Defense: 5
+	Health: 5
+	Chest
+	Equippable
+-----------
+4 - Leather Pants
+	Description: Swagger
+	Defense: 5
+	Health: 5
+	Pants
+	Equippable
+-----------
+5 - Leather Boots
+	Description: Waterproof?
+	Defense: 5
+	Health: 5
+	Boots
+	Equippable
+-----------
+6 - Granite Dagger
+	Description: A dagger made from granite? How does that work?
+	Damage: 15
+	Equippable
+-----------
+7 - Basic Health Potion
+	Description: Healing Finally!
+	Healing: 25
+	Consumable
+----------

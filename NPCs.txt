@@ -1,0 +1,29 @@
+1 - Old Shop Owner
+	Type: Friendly
+	Health: 500
+	XP: 0
+-----------
+2 - Goblin
+	Type: Enemy
+	Health: 50
+	Damage: 5
+	Defense: 1
+	XP: 1
+	Gold: 10
+----------
+3 - Skeleton
+    Type: Enemy
+    Health: 75
+    Damage: 7
+    Defense: 1
+    XP: 2
+	Gold: 15
+----------
+4 - Zombie
+    Type: Enemy
+    Health: 100
+    Damage: 10
+    Defense: 1
+    XP: 4
+	Gold: 20
+----------
