@@ -115,6 +115,7 @@ std::unique_ptr<NPC> NPCFactory::parseNPCBlock(const std::vector<std::string>& l
         else if (key == "XP") xp = std::stoi(value);
         else if (key == "Damage") damage = std::stoi(value);
         else if (key == "Defense") defense = std::stoi(value);
+		else if (key == "Gold") gold = std::stoi(value);
         else if (key == "Job") {
             if (value == "Shop") job = FriendlyJob::Shop;
             else if (value == "Quest") job = FriendlyJob::Quest;

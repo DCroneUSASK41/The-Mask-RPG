@@ -305,6 +305,7 @@ std::unique_ptr < Item > ItemFactory::parseItemBlock(const std::vector < std::st
     int defense = 0;
     int health = 0;
     int healing = 0;
+	std::string description;
 
     ArmorSlotType armorSlot = ArmorSlotType::Coat; // default fallback
     bool hasArmorSlot = false;
@@ -331,6 +332,7 @@ std::unique_ptr < Item > ItemFactory::parseItemBlock(const std::vector < std::st
             else if (key == "Defense") defense = std::stoi(value);
             else if (key == "Health") health = std::stoi(value);
             else if (key == "Healing") healing = std::stoi(value);
+			else if (key == "Description") description = value;
 
             continue;
         }
@@ -365,7 +367,7 @@ std::unique_ptr < Item > ItemFactory::parseItemBlock(const std::vector < std::st
         auto w = std::make_unique < Weapon > ();
         w->setItemID(itemID);
         w->setName(name);
-        w->setDescription(name);
+        w->setDescription(description);
         w->setDamage(damage);
         w->setTraits(traits);
         return w;
@@ -375,7 +377,7 @@ std::unique_ptr < Item > ItemFactory::parseItemBlock(const std::vector < std::st
         auto a = std::make_unique < Armor > ();
         a->setItemID(itemID);
         a->setName(name);
-        a->setDescription(name);
+        a->setDescription(description);
         a->setDefense(defense);
         a->setHealthBonus(health);
         a->setTraits(traits);
@@ -388,7 +390,7 @@ std::unique_ptr < Item > ItemFactory::parseItemBlock(const std::vector < std::st
         auto p = std::make_unique < Potion > ();
         p->setItemID(itemID);
         p->setName(name);
-        p->setDescription(name);
+        p->setDescription(description);
         p->setHealAmount(healing);
         p->setTraits(traits);
         return p;
@@ -397,7 +399,7 @@ std::unique_ptr < Item > ItemFactory::parseItemBlock(const std::vector < std::st
     auto g = std::make_unique < GenericItem > ();
     g->setItemID(itemID);
     g->setName(name);
-    g->setDescription(name);
+    g->setDescription(description);
     g->setTraits(traits);
     return g;
 }

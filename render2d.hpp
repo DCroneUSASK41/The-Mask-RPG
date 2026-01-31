@@ -18,9 +18,11 @@ class Renderer {
         void shutdown();
 		void drawInventory();
 		void drawSlot(int x, int y, int slotSize);
+		void drawTooltip(const std::string& name, const std::string& desc, int x, int y);
         
 		int windowWidth;
 		int windowHeight;
+		TTF_Font* font = nullptr;
 		
     private:
         SDL_Texture* loadTexture(const std::string& path);
