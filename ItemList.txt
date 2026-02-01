@@ -46,4 +46,6 @@
 	Defense: 0
 	Health: 0
 	Head
+
 	Equippable
+----------
