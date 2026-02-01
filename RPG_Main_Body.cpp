@@ -246,9 +246,12 @@ void runGame() {
 	ItemFactory itemfactory;
 	NPCFactory npcfactory;
 	Renderer renderer;
+	CombatContext combat;
+	combat.player = &player;
 	
 	auto items = itemfactory.loadItems("ItemList.txt");
 	auto npcs = npcfactory.loadNPCs("NPCs.txt");
+	bool eDown = false;
 	bool eWasDown = false;
 	
 	player.inventory.addItem(std::move(items[0]));
@@ -271,6 +274,12 @@ void runGame() {
 	}
 	
 	renderer.init("The Mask RPG", screenWidth, screenHeight);
+	
+	// Correcting Spawn Position
+	player.spawnX = 0;
+	player.spawnY = renderer.windowHeight - 100;
+	player.y = player.spawnY;
+	
 	bool running = true;
 	
 	while (running) {
@@ -279,19 +288,74 @@ void runGame() {
 	        if (e.type == SDL_QUIT) { running = false; }
 	    }
 		
-	    const Uint8* keystate = SDL_GetKeyboardState(NULL);
+		const Uint8* keystate = SDL_GetKeyboardState(NULL);
 		if (state == GameState::Explore) { // If Exploring "Not in inventory or fight"
+			int oldX = player.x;
+			int oldY = player.y;
+			
 			if (keystate[SDL_SCANCODE_W] || keystate[SDL_SCANCODE_UP]) player.move(0, -4);
 			if (keystate[SDL_SCANCODE_A] || keystate[SDL_SCANCODE_LEFT]) player.move(-4, 0);
 			if (keystate[SDL_SCANCODE_S] || keystate[SDL_SCANCODE_DOWN]) player.move(0, 4);
 			if (keystate[SDL_SCANCODE_D] || keystate[SDL_SCANCODE_RIGHT]) player.move(4, 0);
+		
+			const int playerW = 32;
+			const int playerH = 32;
+			player.x = std::max(0, std::min(player.x, renderer.windowWidth - playerW));
+			player.y = std::max(0, std::min(player.y, renderer.windowHeight - playerH));
+			
+			SDL_Rect playerRect{ player.x, player.y, 32, 32 };
+			SDL_Rect zombie{ 200, 200, 32, 32 };
+			SDL_Rect skeleton{ 300, 200, 32, 32 };
+			SDL_Rect goblin{ 400, 200, 32, 32 };
+			SDL_Rect shopkeeper{ 600, 400, 32, 32};
+			
+			auto startCombatWithIndex = [&](size_t idx) {
+				if (idx >= npcs.size()) {
+					std::cerr << "Range Error";
+					return;
+				}
+			
+				EnemyNPC* enemy = dynamic_cast<EnemyNPC*>(npcs[idx].get());
+				if (!enemy) {
+					std::cerr << "NPC is not an enemy";
+					return;
+				}
+			
+				state = GameState::Combat;
+				combat.enemy = enemy;
+				combat.enemyHealth = enemy->getHealth();
+				combat.playerHealth = player.health;
+			};
+			
+			if (SDL_HasIntersection(&playerRect, &zombie)) {
+				player.x = oldX;
+				player.y = oldY;
+				startCombatWithIndex(3);
+			}
+			
+			if (SDL_HasIntersection(&playerRect, &skeleton)) {
+				player.x = oldX;
+				player.y = oldY;
+				startCombatWithIndex(2);
+			}
+			
+			if (SDL_HasIntersection(&playerRect, &goblin)) {
+				player.x = oldX;
+				player.y = oldY;
+				startCombatWithIndex(1);
+			}
+			
+			if (SDL_HasIntersection(&playerRect, &shopkeeper)) {
+				player.x = oldX;
+				player.y = oldY;
+			}
 		}
 		
 		if (keystate[SDL_SCANCODE_I]) { state = GameState::Inventory; }
 		else if (keystate[SDL_SCANCODE_ESCAPE]) { state = GameState::Explore; }
 		
 	    renderer.clear();
-	    
+	    renderer.drawBackdrop();
 		if (state == GameState::Inventory) {
 			renderer.drawInventory();
 			
@@ -326,15 +390,18 @@ void runGame() {
 					SDL_Rect slotRect{ x, y, slotSize, slotSize };
 					SDL_Point mousePoint{ mouseX, mouseY };
 					
-					bool eDown = keystate[SDL_SCANCODE_E];
+					eDown = keystate[SDL_SCANCODE_E];
 					
 					if (SDL_PointInRect(&mousePoint, &slotRect)) {
 						renderer.drawTooltip(item->getName(), item->getDescription(), mouseX + 16, mouseY + 16);
-
-						if (eDown && !eWasDown) { player.inventory.equipItem(slotIndex); }
+						
+						if (eDown && !eWasDown) {
+							if (dynamic_cast<Potion*>(item)) { item->use(); }
+							else { player.inventory.equipItem(slotIndex); }
+						}
 					}
-					eWasDown = eDown;
 				}
+				eWasDown = eDown;
 			}
 			
 			const Item* weapon = player.inventory.getEquippedWeapon();
@@ -369,9 +436,69 @@ void runGame() {
 			}
 		}
 		
+		renderer.drawPlayerUI(player.level, player.xp, player.maxHealth, player.health, player.gold, player.xpThresholds);
+		
 		if (state == GameState::Explore) { 
-		renderer.drawPlayer(player.x, player.y);
-		renderer.drawNPC(200, 200, 4);
+			renderer.drawNPC(200, 200, 4);
+			renderer.drawNPC(300, 200, 3);
+			renderer.drawNPC(400, 200, 2);
+			renderer.drawNPC(600, 400, 1);
+			renderer.drawPlayer(player.x, player.y);
+		}
+		
+		if (state == GameState::Combat) {
+			renderer.clear();
+			renderer.drawBackdrop();
+			renderer.drawPlayerUI(player.level, player.xp, player.maxHealth, player.health, player.gold, player.xpThresholds);
+			
+			renderer.drawText("Combat!", 250, 50);
+			renderer.drawText("Enemy: " + combat.enemy->getName(), 250, 100);
+			
+			int npcID = combat.enemy->getID();
+			
+			renderer.drawNPC(200, 200, npcID);
+			renderer.drawPlayer(200, 400);
+			
+			int mouseX, mouseY;
+			Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+			
+			static bool clickWasDown = false;
+			
+			bool leftDown = mouseState & SDL_BUTTON(SDL_BUTTON_LEFT);
+			bool rightDown = mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT);
+			
+			if (leftDown && !clickWasDown) {
+				fight(&combat, 1);
+			}
+			if (rightDown && !clickWasDown) {
+				fight(&combat, 2);
+			}
+			
+			clickWasDown = leftDown || rightDown;
+			
+			if (combat.state == CombatState::EnemyTurn) {
+				int dmg = combat.enemy->getAttack();
+				if (dmg < 0) dmg = 0;
+				
+				combat.playerHealth -=dmg;
+				
+				if (combat.playerHealth <= 0) {
+					combat.state = CombatState::Defeat;
+				} else {
+					combat.state = CombatState::PlayerTurn;
+				}
+			}
+			
+			if (combat.state == CombatState::Victory) {
+				player.addXP(combat.enemy->getXP());
+				player.gold += combat.enemy->getGold();
+				state = GameState::Explore;
+			}
+			
+			if (combat.state == CombatState::Defeat) {
+				player.applyDeathPenalty();
+				state = GameState::Explore;
+			}
 		}
 		
 	    renderer.present();
@@ -432,7 +559,7 @@ void fight(CombatContext* ctx, int playerChoice) {
         
         if (playerChoice == 1) { // Attack
             int damage = 10 - ctx->enemy->getDefense();
-            if (damage < 1) damage = 1;
+            if (damage < 0) damage = 0;
         
             ctx->enemyHealth -= damage;
             ctx->lastDamage = damage;
@@ -456,6 +583,12 @@ void fight(CombatContext* ctx, int playerChoice) {
 
 // Main Function for execution
 int main() {
+	using namespace std;
+	
+	cerr << "Controls:\n";
+	cerr << "'I' opens the inventory\n'ESC' closes the inventory/fights\n'WASD/Arrows' to move\n'E' to equip/consume an item\n";
+	cerr << "Warning VERY BUGGY ATM";
+	
 	runGame();
 	return 0;
 }

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+# include <vector>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -55,8 +56,11 @@ bool Renderer::init(const char* title, int width, int height) {
 		return false;
 	}
 	
+	Backdrop = loadTexture("Assets/Background.jpg");
+	
 	font = TTF_OpenFont("Assets/font.ttf", 20);
-	if (!font) {
+	fontUI = TTF_OpenFont("Assets/font.ttf", 10);
+	if (!font || !fontUI) {
 		std::cerr << "Failed to load font: " << TTF_GetError() << "\n";
 		return false;
 	}
@@ -113,6 +117,27 @@ void Renderer::drawItem(int x, int y, int id, int slotSize) {
 	
     SDL_Rect dst{ x, y, iconSize, iconSize };
     SDL_RenderCopy(renderer, tex, nullptr, &dst);
+}
+void Renderer::drawText(std::string text, int x, int y) {
+	if (!font) return;
+	
+	SDL_Color white = {255, 255, 255, 255};
+	
+	SDL_Surface* surf = TTF_RenderText_Blended(fontUI, text.c_str(), white);
+	if (!surf) return;
+	
+	SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+	SDL_FreeSurface(surf);
+	
+	if (!tex) return;
+	
+	int w, h;
+	SDL_QueryTexture(tex, nullptr, nullptr, &w, &h);
+	
+	SDL_Rect dst{ x, y, w, h };
+	SDL_RenderCopy(renderer, tex, nullptr, &dst);
+	
+	SDL_DestroyTexture(tex);
 }
 void Renderer::present() {
     SDL_RenderPresent(renderer);
@@ -180,7 +205,7 @@ void Renderer::drawTooltip(const std::string& name, const std::string& desc, int
 	SDL_Color black = {0, 0, 0, 200};
 	
 	SDL_Surface* nameSurf = TTF_RenderText_Blended(font, name.c_str(), white);
-	SDL_Surface* descSurf = TTF_RenderText_Blended_Wrapped(font, desc.c_str(), white, 100);
+	SDL_Surface* descSurf = TTF_RenderText_Blended_Wrapped(font, desc.c_str(), white, 150);
 	
 	SDL_Texture* nameTex = SDL_CreateTextureFromSurface(renderer, nameSurf);
 	SDL_Texture* descTex = SDL_CreateTextureFromSurface(renderer, descSurf);
@@ -207,6 +232,71 @@ void Renderer::drawTooltip(const std::string& name, const std::string& desc, int
 	SDL_FreeSurface(descSurf);
 	SDL_DestroyTexture(nameTex);
 	SDL_DestroyTexture(descTex);
+}
+void Renderer::drawPlayerUI(int level, int xp, int maxHealth, int health, int gold, std::vector<int>& xpThresholds) {
+	float scale = windowHeight / 1080.0f;
+	
+	int panelW = int(300 * scale);
+	int panelH = int(140 * scale);
+	int margin = int(20 * scale);
+	
+	SDL_SetRenderDrawColor(renderer, 50, 50, 50, 80); // UI Background
+	SDL_Rect panel{ margin, margin, panelW, panelH };
+	SDL_RenderFillRect(renderer, &panel);
+	
+	int barW = int(220 * scale); // Bar Dimensions
+	int barH = int(20 * scale);
+	
+	int hpW = (barW * health) / maxHealth; // Health Bar
+	SDL_Rect hpBack{
+		int(margin + 20 * scale),
+		int(margin + 20 * scale), 
+		barW, 
+		barH 
+	};
+	SDL_Rect hpFront{ 
+		int(margin + 20 * scale), 
+		int(margin + 20 * scale), 
+		hpW, 
+		barH 
+	};
+	
+	SDL_SetRenderDrawColor(renderer, 80, 0, 0, 80);
+	SDL_RenderFillRect(renderer, &hpBack);
+	SDL_SetRenderDrawColor(renderer, 200, 0, 0, 160);
+	SDL_RenderFillRect(renderer, &hpFront);
+	
+	int nextXP = xpThresholds[level + 1]; // XP bar
+	int xpW = (barW * xp) / nextXP;
+	SDL_Rect xpBack{ 
+		int(margin + 20 * scale), 
+		int(margin + 60 * scale), 
+		barW, 
+		barH 
+	};
+	SDL_Rect xpFront{ 
+		int(margin + 20 * scale), 
+		int(margin + 60 * scale), 
+		xpW, 
+		barH 
+	};
+
+	SDL_SetRenderDrawColor(renderer, 0, 80, 0, 80);
+	SDL_RenderFillRect(renderer, &xpBack);
+	SDL_SetRenderDrawColor(renderer, 0, 200, 0, 160);
+	SDL_RenderFillRect(renderer, &xpFront);
+	
+	drawText("Health: " + std::to_string(health) + "/" + std::to_string(maxHealth),
+			 int(margin + 20 * scale), int(margin + 45 * scale));
+	drawText("XP: " + std::to_string(xp) + "/" + std::to_string(nextXP),
+			 int(margin + 20 * scale), int(margin + 85 * scale));
+	drawText("Level: " + std::to_string(level),
+			 int(margin + 20 * scale + 100 * scale), int(margin + 85 * scale));
+	drawText("Gold: " + std::to_string(gold), int(margin + 20 * scale), int(margin + 110 * scale));
+}
+void Renderer::drawBackdrop() {
+	SDL_Rect background { 0, 0, windowWidth, windowHeight };
+	SDL_RenderCopy(renderer, Backdrop, nullptr, &background);
 }
 
 // When updating, use the command line below:

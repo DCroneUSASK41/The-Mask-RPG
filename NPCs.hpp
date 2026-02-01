@@ -30,6 +30,11 @@ class NPC {
         virtual void setType(NPCType t) { type = t; }
         
         virtual void interact() = 0;
+		
+		virtual int getAttack() const { return 0; };
+		virtual int getDefense() const { return 0; };
+		virtual getXP() const { return 0; };
+		virtual getGold() const { return 0; };
     
     protected:
         NPCType type;
