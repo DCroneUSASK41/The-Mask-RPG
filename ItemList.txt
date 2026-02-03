@@ -1,6 +1,6 @@
 1 - Oak Sword
 	Description: Made from solid oak
-	Damage: 10
+	Damage: 30
 	Equippable
 -----------
 2 - Leather Hat
@@ -33,18 +33,19 @@
 -----------
 6 - Granite Dagger
 	Description: A dagger made from granite? How does that work?
-	Damage: 15
+	Damage: 60
 	Equippable
 -----------
 7 - Basic Health Potion
 	Description: Healing Finally!
 	Healing: 25
 	Consumable
-----------
+-----------
 8 - The Mask
 	Description: Would you drink the cool-aid? (Placeholder)
-	Defense: 0
-	Health: 0
+	Defense: 1
+	Health: 1
 	Head
 	Equippable
 ----------
+

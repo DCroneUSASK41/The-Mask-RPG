@@ -3,6 +3,15 @@
 # include <iostream>
 # include <fstream>
 # include <memory>
+# include <unordered_map>
+
+// General Functions for shit to work
+static inline std::string trim(const std::string& s) {
+	size_t start = s.find_first_not_of(" \t\r\n");
+	if (start == std::string::npos) return "";
+	size_t end = s.find_last_not_of(" \t\r\n");
+	return s.substr(start, end - start + 1);
+}
 
 // Friendly Functions
 void FriendlyNPC::setID(int id) { NPCID = id; }
@@ -37,8 +46,8 @@ void EnemyNPC::interact() {
 }
 
 // NPCFactory Functions
-std::vector<std::unique_ptr<NPC>> NPCFactory::loadNPCs(const std::string& filename) {
-    std::vector<std::unique_ptr<NPC>> npcs;
+std::unordered_map<int, std::unique_ptr<NPC>> NPCFactory::loadNPCs(const std::string& filename) {
+    std::unordered_map<int, std::unique_ptr<NPC>> npcs;
     std::ifstream file(filename);
     
     if (!file) {
@@ -54,7 +63,8 @@ std::vector<std::unique_ptr<NPC>> NPCFactory::loadNPCs(const std::string& filena
             if (!block.empty()) {
                 auto npc = parseNPCBlock(block);
                 if (npc) {
-                    npcs.push_back(std::move(npc));
+                    int id = npc->getID();
+					npcs[id] = std::move(npc);
                 }
                 block.clear();
             }
@@ -65,7 +75,8 @@ std::vector<std::unique_ptr<NPC>> NPCFactory::loadNPCs(const std::string& filena
     if (!block.empty()) {
         auto npc = parseNPCBlock(block);
         if (npc) {
-            npcs.push_back(std::move(npc));
+            int id = npc->getID();
+			npcs[id] = std::move(npc);
         }
     }
     
@@ -88,27 +99,26 @@ std::unique_ptr<NPC> NPCFactory::parseNPCBlock(const std::vector<std::string>& l
     NPCType type = NPCType::Friendly; // Defaults to friendly
     
     { // ID - Name
-        std::string header = lines[0];
+        std::string header = trim(lines[0]);
         auto dash = header.find('-');
         if (dash != std::string::npos) {
             id = std::stoi(header.substr(0, dash));
-            name = header.substr(dash + 1);
+            name = trim(header.substr(dash + 1));
             name.erase(0, name.find_first_not_of(" \t"));
         }
     }
     
     // Remaining Information
     for (size_t i = 1; i < lines.size(); ++i) {
-        std::string line = lines[i];
-        line.erase(0, line.find_first_not_of(" \n"));
+        std::string line = trim(lines[i]);
+        if (line.empty()) continue;
         
         auto colon = line.find(':');
         if (colon == std::string::npos)
             continue;
         
-        std::string key = line.substr(0, colon);
-        std::string value = line.substr(colon + 1);
-        value.erase(0, value.find_first_not_of(" \t"));
+        std::string key = trim(line.substr(0, colon));
+		std::string value = trim(line.substr(colon + 1));
         
         if (key == "Type") {
             if (value == "Enemy") type = NPCType::Enemy;

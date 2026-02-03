@@ -59,6 +59,8 @@ struct CombatContext {
 };
 class Player {
     public:
+		static const int MAX_LEVEL = 25;
+		
         // Position
         int x = 0;
         int y = 0;
@@ -68,6 +70,7 @@ class Player {
         // Stats
         int health = 100;
         int maxHealth = 100;
+		int Defense = 0;
         int gold = 0;
         int xp = 0;
         int level = 0;
@@ -86,13 +89,15 @@ class Player {
         // XP table generation
         void generateXPtable() {
             xpThresholds.clear();
-            xpThresholds.push_back(0);
-            xpThresholds.push_back(10);
+			xpThresholds.resize(MAX_LEVEL + 1);
+			
+            xpThresholds[0] = 0;
+			xpThresholds[1] = 10;
             
-            for (int i = 1; i < 25; ++i) {
+            for (int i = 1; i < MAX_LEVEL; ++i) {
                 int prev = xpThresholds[i];
                 int next = std::ceil(prev + std::log2(prev));
-                xpThresholds.push_back(next);
+                xpThresholds[i + 1] = next;
             }
         }
         
@@ -100,7 +105,11 @@ class Player {
         void addXP(int amount) {
             xp += amount;
             
-            while (level < 25 && xp >= xpThresholds[level + 1]) {
+			if (level == MAX_LEVEL) {
+				xp = std::min(xp, xpThresholds[MAX_LEVEL]);
+			}
+			
+            while (level < MAX_LEVEL && xp >= xpThresholds[level + 1]) {
                 xp -= xpThresholds[level + 1];
                 level++;
                 onLevelUp();
@@ -111,6 +120,7 @@ class Player {
         void onLevelUp() {
             maxHealth += 10;
             health = maxHealth;
+			if (level >= MAX_LEVEL) return;
         }
         
         // Death Penalty
@@ -120,6 +130,7 @@ class Player {
             gold = std::max(0, gold - 100);
             
             // Spawn at the start
+			health = maxHealth;
             x = spawnX;
             y = spawnY;
         }
@@ -129,6 +140,57 @@ class Player {
             x += dx;
             y += dy;
         }
+		
+		// Finding Potion Slot for Battle Consumption
+		int findFirstPotionSlot() const {
+			for (int i = 0; i < inventory.getGeneralSlotCount(); ++i) {
+				const Item* it = inventory.getItem(i);
+				if (it && dynamic_cast<const Potion*>(it)) {
+					return i;
+				}
+			}
+			return - 1;
+		}
+		
+		// Consuming Potion During Battle
+		bool consumePotion(int slot) {
+			Item* it = inventory.getItem(slot);
+			Potion* potion = dynamic_cast<Potion*>(it);
+			if (!potion) return false;
+			
+			ItemActionResult r = potion->use();
+			
+			if (r.success) {
+				health = std::min(maxHealth, health + r.healAmount);
+				potion->removeFromStack(1);
+				if (potion->getStackCount() <= 0) {
+					inventory.removeItem(slot);
+				}
+				
+				return true;
+			}
+			
+			return false;
+		}
+		
+		int getAttackDamage() const {
+			const Weapon* w = dynamic_cast<const Weapon*>(inventory.getEquippedWeapon());
+			if (w) return w->getDamage();
+			return 1; // Unarmed Damage
+		}
+		
+		void recalculateStats() {
+			int baseHealth = 100 + level * 10;
+			int baseDefense = 0;
+			
+			auto boosts = inventory.getStatBoosts();
+			
+			maxHealth = baseHealth + boosts.health;
+			Defense = baseDefense + boosts.defense;
+			
+			if (health > maxHealth)
+				health = maxHealth;
+		}
 };
 
 // Initial function declarations
@@ -223,7 +285,7 @@ void test_inventory() {
     std::cout << "\n=== Using First Potion ===\n";
     for (int i = 0; i < inv.getGeneralSlotCount(); ++i) {
         Item* it = inv.getItem(i);
-        if (it && dynamic_cast<const Potion*>(it)) {
+        if (it && dynamic_cast<Potion*>(it)) {
             std::cout << "Using potion in slot " << i << "\n";
             it->use();
             break;
@@ -238,6 +300,7 @@ void test_items(Player& player, std::vector<std::unique_ptr<Item>>& items) {
 		if (items[i])
 			player.inventory.addItem(std::move(items[i]));
 	}
+	player.gold = 1;
 }
 
 // Functions
@@ -309,15 +372,16 @@ void runGame() {
 			SDL_Rect goblin{ 400, 200, 32, 32 };
 			SDL_Rect shopkeeper{ 600, 400, 32, 32};
 			
-			auto startCombatWithIndex = [&](size_t idx) {
-				if (idx >= npcs.size()) {
-					std::cerr << "Range Error";
+			auto StartCombatWithID = [&](int id) {
+				auto it = npcs.find(id);
+				if (it == npcs.end()) {
+					std::cerr << "NPC ID not found\n";
 					return;
 				}
-			
-				EnemyNPC* enemy = dynamic_cast<EnemyNPC*>(npcs[idx].get());
+				
+				EnemyNPC* enemy = dynamic_cast<EnemyNPC*>(it->second.get());
 				if (!enemy) {
-					std::cerr << "NPC is not an enemy";
+					std::cerr << "NPC is not an enemy\nFix Your Code Idiot";
 					return;
 				}
 			
@@ -325,24 +389,27 @@ void runGame() {
 				combat.enemy = enemy;
 				combat.enemyHealth = enemy->getHealth();
 				combat.playerHealth = player.health;
+				combat.state = CombatState::PlayerTurn;
+				combat.lastDamage = 0;
+				combat.playerActed = false;
 			};
 			
 			if (SDL_HasIntersection(&playerRect, &zombie)) {
 				player.x = oldX;
 				player.y = oldY;
-				startCombatWithIndex(3);
+				StartCombatWithID(4);
 			}
 			
 			if (SDL_HasIntersection(&playerRect, &skeleton)) {
 				player.x = oldX;
 				player.y = oldY;
-				startCombatWithIndex(2);
+				StartCombatWithID(3);
 			}
 			
 			if (SDL_HasIntersection(&playerRect, &goblin)) {
 				player.x = oldX;
 				player.y = oldY;
-				startCombatWithIndex(1);
+				StartCombatWithID(2);
 			}
 			
 			if (SDL_HasIntersection(&playerRect, &shopkeeper)) {
@@ -378,7 +445,7 @@ void runGame() {
 			for (int r = 0; r < rows; r++) {
 				for (int c = 0; c < cols; c++) {
 					int slotIndex = r * cols + c;
-					Item* item = player.inventory.getItem(slotIndex);
+					const Item* item = player.inventory.getItem(slotIndex);
 					if (!item) continue;
 					
 					int x = startX + (c) * slotSize;
@@ -396,8 +463,14 @@ void runGame() {
 						renderer.drawTooltip(item->getName(), item->getDescription(), mouseX + 16, mouseY + 16);
 						
 						if (eDown && !eWasDown) {
-							if (dynamic_cast<Potion*>(item)) { item->use(); }
-							else { player.inventory.equipItem(slotIndex); }
+							if (dynamic_cast<const Potion*>(item)) { 
+								player.consumePotion(slotIndex);
+								break;
+							} else {
+								player.inventory.equipItem(slotIndex);
+								player.recalculateStats();
+								break;
+							}
 						}
 					}
 				}
@@ -477,10 +550,17 @@ void runGame() {
 			clickWasDown = leftDown || rightDown;
 			
 			if (combat.state == CombatState::EnemyTurn) {
-				int dmg = combat.enemy->getAttack();
+				int dmg = 0;
+				if (combat.player->Defense > 0) {
+					dmg = combat.enemy->getAttack() * (50 - combat.player->Defense) / 100;
+				} else {
+					dmg = combat.enemy->getAttack();
+				}
+				
 				if (dmg < 0) dmg = 0;
 				
 				combat.playerHealth -=dmg;
+				combat.player->health = combat.playerHealth;
 				
 				if (combat.playerHealth <= 0) {
 					combat.state = CombatState::Defeat;
@@ -492,6 +572,13 @@ void runGame() {
 			if (combat.state == CombatState::Victory) {
 				player.addXP(combat.enemy->getXP());
 				player.gold += combat.enemy->getGold();
+				renderer.drawPlayerUI(player.level, player.xp, player.maxHealth, player.health, player.gold, player.xpThresholds);
+				SDL_Delay(500);
+				combat.state = CombatState::PlayerTurn;
+				combat.enemyHealth = combat.enemy->getHealth();
+				combat.lastDamage = 0;
+				combat.playerActed = false;
+				
 				state = GameState::Explore;
 			}
 			
@@ -516,7 +603,7 @@ std::vector<InventorySlotInfo> getInventoryInfo(Inventory& inv) {
 	info.reserve(count);
 	
 	for (int i = 0; i < count; ++i) {
-		Item* item = inv.getItem(i);
+		const Item* item = inv.getItem(i);
 		
 		InventorySlotInfo slot;
 		slot.slotIndex = i;
@@ -558,7 +645,8 @@ void fight(CombatContext* ctx, int playerChoice) {
     if (ctx->state == CombatState::PlayerTurn) {
         
         if (playerChoice == 1) { // Attack
-            int damage = 10 - ctx->enemy->getDefense();
+            int base = ctx->player->getAttackDamage();
+			int damage = base - ctx->enemy->getDefense();
             if (damage < 0) damage = 0;
         
             ctx->enemyHealth -= damage;
@@ -574,9 +662,16 @@ void fight(CombatContext* ctx, int playerChoice) {
         }
         
         else if (playerChoice == 2) { // Use Potion
-            // TODO Integrate Inventory for potion consumption
-            ctx->playerActed = true;
-            ctx->state = CombatState::EnemyTurn;
+            bool used = ctx->player->consumePotion(ctx->player->findFirstPotionSlot());
+			
+			if (used) {
+				ctx->playerHealth = ctx->player->health;
+				ctx->playerActed = true;
+				ctx->state = CombatState::EnemyTurn;
+			} else {
+				std::cerr << "No potions available!\n";
+				ctx->state = CombatState::PlayerTurn;
+			}
         }
     }
 }

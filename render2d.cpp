@@ -266,7 +266,13 @@ void Renderer::drawPlayerUI(int level, int xp, int maxHealth, int health, int go
 	SDL_SetRenderDrawColor(renderer, 200, 0, 0, 160);
 	SDL_RenderFillRect(renderer, &hpFront);
 	
-	int nextXP = xpThresholds[level + 1]; // XP bar
+	int nextXP = 0;
+	if (level + 1 < xpThresholds.size()) {
+		nextXP = xpThresholds[level + 1];
+	} else {
+		nextXP = xpThresholds[level];
+	}
+	if (nextXP <= 0) nextXP = 1;
 	int xpW = (barW * xp) / nextXP;
 	SDL_Rect xpBack{ 
 		int(margin + 20 * scale), 
@@ -287,12 +293,12 @@ void Renderer::drawPlayerUI(int level, int xp, int maxHealth, int health, int go
 	SDL_RenderFillRect(renderer, &xpFront);
 	
 	drawText("Health: " + std::to_string(health) + "/" + std::to_string(maxHealth),
-			 int(margin + 20 * scale), int(margin + 45 * scale));
+			 int(margin + 20 * scale), int(margin + 37 * scale));
 	drawText("XP: " + std::to_string(xp) + "/" + std::to_string(nextXP),
-			 int(margin + 20 * scale), int(margin + 85 * scale));
+			 int(margin + 20 * scale), int(margin + 77 * scale));
 	drawText("Level: " + std::to_string(level),
-			 int(margin + 20 * scale + 100 * scale), int(margin + 85 * scale));
-	drawText("Gold: " + std::to_string(gold), int(margin + 20 * scale), int(margin + 110 * scale));
+			 int(margin + 20 * scale + 100 * scale), int(margin + 77 * scale));
+	drawText("Gold: " + std::to_string(gold), int(margin + 20 * scale), int(margin + 102 * scale));
 }
 void Renderer::drawBackdrop() {
 	SDL_Rect background { 0, 0, windowWidth, windowHeight };

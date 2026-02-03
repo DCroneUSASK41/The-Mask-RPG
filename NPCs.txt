@@ -4,7 +4,7 @@
 	XP: 0
 -----------
 2 - Goblin
-	Type: Enemy
+    Type: Enemy
 	Health: 50
 	Damage: 5
 	Defense: 1

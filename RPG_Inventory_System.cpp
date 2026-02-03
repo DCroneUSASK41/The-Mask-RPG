@@ -105,12 +105,20 @@ bool Inventory::equipItem(int SlotIndex) {
     if (isArmor(item)) {
         Armor& armor = static_cast<Armor&>(item);
         ArmorSlotType type = armor.getSlot();
-
-        int index = static_cast<int > (type);
-        auto old = std::move(ArmorSlots[index]);
-        ArmorSlots[index] = std::move(GeneralSlots[SlotIndex]);
-        GeneralSlots[SlotIndex] = std::move(old);
-        return true;
+        int index = static_cast<int>(type);
+		
+        if (ArmorSlots[index]) {
+			Armor& equipped = static_cast<Armor&>(*ArmorSlots[index]);
+			if (equipped.getSlot() == type) {
+				auto old = std::move(ArmorSlots[index]);
+				ArmorSlots[index] = std::move(GeneralSlots[SlotIndex]);
+				GeneralSlots[SlotIndex] = std::move(old);
+				return true;
+			}
+		} else {
+			ArmorSlots[index] = std::move(GeneralSlots[SlotIndex]);
+			return true;
+		}
     }
 
     return false; // All else failed
@@ -126,9 +134,11 @@ std::unique_ptr < Item > Inventory::unequipArmor(ArmorSlotType type) {
     return std::move(ArmorSlots[index]);
 }
 Item* Inventory::getItem(int SlotIndex) {
-    if (!isValidGeneralSlot(SlotIndex))
-    return nullptr;
-
+    if (!isValidGeneralSlot(SlotIndex)) return nullptr;
+    return GeneralSlots[SlotIndex].get();
+}
+const Item* Inventory::getItem(int SlotIndex) const {
+    if (!isValidGeneralSlot(SlotIndex)) return nullptr;
     return GeneralSlots[SlotIndex].get();
 }
 bool Inventory::isSlotEmpty(int SlotIndex) const {
@@ -204,6 +214,19 @@ int Inventory::findStackableSlot(const Item& item) const {
 
     return -1;
 }
+StatBoosts Inventory::getStatBoosts() const {
+	StatBoosts boosts;
+	
+	for (int i = 0; i < ArmorSlots.size(); i++) {
+		const Armor* a = dynamic_cast<const Armor*>(ArmorSlots[i].get());
+		if (a) {
+			boosts.health += a->getHealthBoost();
+			boosts.defense += a->getDefense();
+		}
+	}
+	
+	return boosts;
+}
 
 // Weapon Functions
 Weapon::Weapon() {
@@ -211,6 +234,7 @@ Weapon::Weapon() {
     StackCount = 1;
 }
 ItemActionResult Weapon::use() { return equip(); }
+int Weapon::getDamage() const { return Damage; }
 ItemActionResult Weapon::equip() {
     ItemActionResult r;
     r.success = true;
@@ -237,6 +261,8 @@ void Armor::setHealthBonus(int h) { HealthBonus = h; }
 void Armor::setDefense(int d) { Defense = d; }
 void Armor::setSlot(ArmorSlotType s) { Slot = s; }
 ArmorSlotType Armor::getSlot() const { return Slot; }
+int Armor::getDefense() const { return Defense; }
+int Armor::getHealthBoost() const { return HealthBonus; }
 
 // Potion Functions
 Potion::Potion() {

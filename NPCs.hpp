@@ -4,6 +4,7 @@
 # include <string>
 # include <vector>
 # include <memory>
+# include <unordered_map>
 
 // Class Declarations
 enum class FriendlyJob {
@@ -94,7 +95,7 @@ class EnemyNPC : public NPC {
 };
 class NPCFactory {
 	public:
-		std::vector<std::unique_ptr<NPC>> loadNPCs(const std::string& filename);
+		std::unordered_map<int, std::unique_ptr<NPC>> loadNPCs(const std::string& filename);
 	
 	private:
 	    std::unique_ptr<NPC> parseNPCBlock(const std::vector<std::string>& lines);

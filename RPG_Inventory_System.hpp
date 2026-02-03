@@ -34,6 +34,10 @@ struct ItemActionResult {
     // Generics
     bool nothingHappened = false;
 };
+struct StatBoosts {
+	int health = 0;
+	int defense = 0;
+};
 class Item {
     public:
     void setName(const std::string& n);
@@ -76,11 +80,13 @@ class Inventory {
     std::unique_ptr < Item > unequipWeapon();
     std::unique_ptr < Item > unequipArmor(ArmorSlotType type);
     Item* getItem(int SlotIndex);
+	const Item* getItem(int SlotIndex) const;
     bool isSlotEmpty(int SlotIndex) const;
     const Item* getEquippedWeapon() const;
     const Item* getEquippedArmor(ArmorSlotType type) const;
     int getGeneralSlotCount() const;
     int getArmorSlotCount() const;
+	StatBoosts getStatBoosts() const;
 
     private:
     std::array < std::unique_ptr < Item >,
@@ -107,6 +113,7 @@ class Weapon: public Item {
     ItemActionResult use() override;
     ItemActionResult equip();
     void setDamage(int d);
+	int getDamage() const;
 
     private:
     int Damage;
@@ -133,6 +140,8 @@ class Armor: public Item {
     void setDefense(int d);
     void setSlot(ArmorSlotType s);
     ArmorSlotType getSlot() const;
+	int getDefense() const;
+	int getHealthBoost() const;
 
     private:
     int Defense;
