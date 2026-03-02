@@ -33,8 +33,7 @@ void Item::removeFromStack(int amount) { StackCount -= amount; }
 void Item::setItemID(int id) { ItemID = id; }
 void Item::setPrice(const int p) { Price = p; }
 int Item::getPrice() const { return Price; }
-virtual clone() {
-}
+
 
 // Inventory Functions
 Inventory::Inventory() {}
@@ -435,7 +434,6 @@ std::unique_ptr < Item > ItemFactory::parseItemBlock(const std::vector < std::st
 }
 
 // Generic Item Functions
-
 GenericItem::GenericItem() {
     MaxStack = 100;
     StackCount = 1;

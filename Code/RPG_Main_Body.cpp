@@ -11,6 +11,7 @@
 # include <array>
 # include <unordered_map>
 # include <filesystem>
+# include "Player.hpp"
 # include "RPG_Inventory_System.hpp"
 # include "NPCs.hpp"
 # include "render2d.hpp"
@@ -57,141 +58,6 @@ struct CombatContext {
     int lastDamage = 0; // for UI feedback
     
     bool playerActed = false;
-};
-class Player {
-    public:
-		static const int MAX_LEVEL = 25;
-		
-        // Position
-        int x = 0;
-        int y = 0;
-        int spawnX = 0;
-        int spawnY = 0;
-        
-        // Stats
-        int health = 100;
-        int maxHealth = 100;
-		int Defense = 0;
-        int gold = 0;
-        int xp = 0;
-        int level = 0;
-        
-        // Leveling System
-        std::vector<int> xpThresholds;
-        
-        // Inventory
-        Inventory inventory;
-        
-        // Constructor
-        Player() {
-            generateXPtable();
-        }
-        
-        // XP table generation
-        void generateXPtable() {
-            xpThresholds.clear();
-			xpThresholds.resize(MAX_LEVEL + 1);
-			
-            xpThresholds[0] = 0;
-			xpThresholds[1] = 10;
-            
-            for (int i = 1; i < MAX_LEVEL; ++i) {
-                int prev = xpThresholds[i];
-                int next = std::ceil(prev + std::log2(prev));
-                xpThresholds[i + 1] = next;
-            }
-        }
-        
-        // XP Gain
-        void addXP(int amount) {
-            xp += amount;
-            
-			if (level == MAX_LEVEL) {
-				xp = std::min(xp, xpThresholds[MAX_LEVEL]);
-			}
-			
-            while (level < MAX_LEVEL && xp >= xpThresholds[level + 1]) {
-                xp -= xpThresholds[level + 1];
-                level++;
-                onLevelUp();
-            }
-        }
-        
-        // Level Up Rewards
-        void onLevelUp() {
-            maxHealth += 10;
-            health = maxHealth;
-			if (level >= MAX_LEVEL) return;
-        }
-        
-        // Death Penalty
-        void applyDeathPenalty() {
-            // Reset and charge the player for death
-            xp = 0;
-            gold = std::max(0, gold - 100);
-            
-            // Spawn at the start
-			health = maxHealth;
-            x = spawnX;
-            y = spawnY;
-        }
-        
-        // Movement
-        void move(int dx, int dy) {
-            x += dx;
-            y += dy;
-        }
-		
-		// Finding Potion Slot for Battle Consumption
-		int findFirstPotionSlot() const {
-			for (int i = 0; i < inventory.getGeneralSlotCount(); ++i) {
-				const Item* it = inventory.getItem(i);
-				if (it && dynamic_cast<const Potion*>(it)) {
-					return i;
-				}
-			}
-			return - 1;
-		}
-		
-		// Consuming Potion During Battle
-		bool consumePotion(int slot) {
-			Item* it = inventory.getItem(slot);
-			Potion* potion = dynamic_cast<Potion*>(it);
-			if (!potion) return false;
-			
-			ItemActionResult r = potion->use();
-			
-			if (r.success) {
-				health = std::min(maxHealth, health + r.healAmount);
-				potion->removeFromStack(1);
-				if (potion->getStackCount() <= 0) {
-					inventory.removeItem(slot);
-				}
-				
-				return true;
-			}
-			
-			return false;
-		}
-		
-		int getAttackDamage() const {
-			const Weapon* w = dynamic_cast<const Weapon*>(inventory.getEquippedWeapon());
-			if (w) return w->getDamage();
-			return 1; // Unarmed Damage
-		}
-		
-		void recalculateStats() {
-			int baseHealth = 100 + level * 10;
-			int baseDefense = 0;
-			
-			auto boosts = inventory.getStatBoosts();
-			
-			maxHealth = baseHealth + boosts.health;
-			Defense = baseDefense + boosts.defense;
-			
-			if (health > maxHealth)
-				health = maxHealth;
-		}
 };
 
 // Initial function declarations
@@ -620,7 +486,9 @@ void runGame() {
 			for (int r = 0; r < rows; r++) {
 				for (int c = 0; c < cols; c++) {
 					int slotIndex = r * cols + c;
-					const Item* item = shopInventory.getItem(slotIndex);
+					ShopkeeperNPC* shop = dynamic_cast<ShopkeeperNPC*>(npcs[1].get());
+					if (!shop) continue;
+					const Item* item = shop->getItem(slotIndex);
 					if (!item) continue;
 					
 					int x = startX + c * slotSize;
@@ -636,7 +504,7 @@ void runGame() {
 						
 						Uint32 mouseState = SDL_GetMouseState(NULL, NULL);
 						if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) {
-							attemptPurchase(player, item);
+							shop->attemptPurchase(player, slotIndex);
 						}
 					}
 				}

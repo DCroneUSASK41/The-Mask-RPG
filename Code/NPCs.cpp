@@ -24,6 +24,8 @@ int FriendlyNPC::getID() const { return NPCID; }
 const std::string& FriendlyNPC::getName() const { return name; }
 FriendlyJob FriendlyNPC::getJob() const { return job; }
 int FriendlyNPC::getHealth() const { return health; }
+
+// Shopkeeper Functions
 bool ShopkeeperNPC::attemptPurchase(Player& player, int index) {
 	if (index < 0 || index >= inventory.size()) return false;
 	

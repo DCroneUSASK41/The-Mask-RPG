@@ -32,8 +32,6 @@ class NPC {
         
         virtual NPCType getType() const { return type; }
         virtual void setType(NPCType t) { type = t; }
-        
-        virtual void interact() = 0;
 		
 		virtual int getAttack() const { return 0; };
 		virtual int getDefense() const { return 0; };
@@ -56,8 +54,6 @@ class FriendlyNPC : public NPC {
 		int getHealth() const override;
 		
 		void setType(NPCType t) override { type = t; }
-		
-		void interact() override;
 	
 	private:
 		int NPCID;
@@ -85,8 +81,6 @@ class EnemyNPC : public NPC {
 		
 		void setType(NPCType t) override { type = t; }
 		
-		void interact() override;
-	
 	private:
 		int NPCID;
 		std::string name;

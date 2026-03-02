@@ -62,7 +62,7 @@ class Item {
 		void setItemID(int id);
 		int getItemID() const;
 		
-		virtual std::unique_ptr<Item>  clone() = 0;
+		virtual std::unique_ptr<Item>  clone() const = 0;
 
     protected:
 		std::string Name;
@@ -120,6 +120,10 @@ class Weapon: public Item {
 		ItemActionResult equip();
 		void setDamage(int d);
 		int getDamage() const;
+		
+		std::unique_ptr<Item> clone() const override {
+			return std::make_unique<Weapon>(*this);
+		}
 
     private:
 		int Damage;
@@ -131,6 +135,10 @@ class Potion: public Item {
 		ItemActionResult use() override;
 		ItemActionResult consume();
 		void setHealAmount(int h);
+		
+		std::unique_ptr<Item> clone() const override {
+			return std::make_unique<Potion>(*this);
+		}
 
     private:
 		int HealAmount = 0;
@@ -148,6 +156,10 @@ class Armor: public Item {
 		ArmorSlotType getSlot() const;
 		int getDefense() const;
 		int getHealthBoost() const;
+		
+		std::unique_ptr<Item> clone() const override {
+			return std::make_unique<Armor>(*this);
+		}
 
     private:
 		int Defense;
@@ -165,6 +177,10 @@ class GenericItem: public Item {
     public:
 		GenericItem();
 		ItemActionResult use() override;
+		
+		std::unique_ptr<Item> clone() const override {
+			return std::make_unique<GenericItem>(*this);
+		}
 };
 
 #endif
